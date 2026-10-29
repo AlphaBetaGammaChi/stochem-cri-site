@@ -52,6 +52,29 @@
     <div class="card"><div class="big">~120</div><div class="lbl">non-methane VOCs represented by the lumped scheme</div></div>
   </div>
 
+  <h2>Watch the lumping happen</h2>
+  <div class="schematic">
+    Schematic animation: a stream of emitted VOCs (left) enters the CRI
+    construction and is lumped into generic peroxy-radical families —
+    RN·O₂ (alkane), RU·O₂ (unsaturated), RA·O₂ (aromatic), RTX·O₂ (terpene),
+    plus the explicit small radicals CH₃O₂/C₂H₅O₂ — then cascades through
+    lumped carbonyl intermediates (CARB, UCARB, UDCARB) to the outcomes a
+    global model cares about. Species names are real CRI names from the
+    mechanism file.
+  </div>
+  <div class="controls">
+    <button class="btn" id="cri-play">Pause</button>
+    <button class="btn" id="cri-reset">Reset</button>
+  </div>
+  <figure class="viz">
+    <canvas id="cri-canvas" width="960" height="430"></canvas>
+    <figcaption>
+      MCM v3.1 (~13,000 species, ~50,000 reactions) → CRI v2-R5 (~200 species,
+      ~700 reactions). Each lumped family is a "common representative" of many
+      MCM intermediates sharing the same reactive-bond index.<sup class="cite"><a href="references.html#jenkin2008">[3]</a>,<a href="references.html#watson2008">[4]</a></sup>
+    </figcaption>
+  </figure>
+
   <h2>The core photochemical engine</h2>
   <p>
     Sunlight photolyses O<sub>3</sub> to O(<sup>1</sup>D), which reacts with
@@ -77,6 +100,25 @@
     J(O<sub>3</sub>→O(<sup>1</sup>D)) and J(NO<sub>2</sub>) to the many carbonyl
     splittings that drive VOC degradation.
   </p>
+
+  <h3>One parcel, one day</h3>
+  <div class="schematic">
+    Schematic: inside a single parcel the stiff solver steps through every
+    reaction each timestep. These analytic curves sketch a polluted parcel's
+    two-day cycle — photolysis switching on at dawn, the OH spike, the
+    NO₂ rush-hour peak, and the afternoon O₃ build.
+  </div>
+  <div class="controls">
+    <button class="btn" id="day-play">Pause</button>
+  </div>
+  <figure class="viz">
+    <canvas id="day-canvas" width="960" height="330"></canvas>
+    <figcaption>
+      Schematic diurnal cycles in one parcel. Night shading shows the
+      photolysis channels off; each coloured trace uses its own y-scale
+      (units in the legend).
+    </figcaption>
+  </figure>
 
   <h2>Nitrogen reservoirs: PAN, RO<sub>2</sub>NO<sub>2</sub>, HNO<sub>3</sub></h2>
   <p>
@@ -115,6 +157,38 @@
     production and loss terms be closed species-by-species.
   </p>
 
+  <h2>The elementary steps, animated</h2>
+  <p>
+    Every O<sub>3</sub> molecule made in the model traces back to a handful of
+    peroxy-radical propagation steps. These ball-and-stick animations are
+    rendered from JSON reaction specifications with JPL-evaluated rate data —
+    the two below are the dominant O<sub>3</sub>-producing steps in the
+    troposphere.
+  </p>
+  <div class="two-col">
+    <figure class="viz">
+      <img src="assets/img/ho2_no.gif" alt="Ball-and-stick animation of HO2 + NO to OH + NO2" loading="lazy">
+      <figcaption>
+        HO₂ + NO → ·OH + ·NO₂ — recycles OH <i>and</i> converts NO to NO₂ in one
+        step; the key ozone-producing propagation in clean-to-moderate air.
+        k(T) = 3.3×10⁻¹² e<sup>+270/T</sup> cm³ molecule⁻¹ s⁻¹ (JPL Pub. 19-5).
+      </figcaption>
+    </figure>
+    <figure class="viz">
+      <img src="assets/img/ch3o2_no.gif" alt="Ball-and-stick animation of CH3O2 + NO to CH3O + NO2" loading="lazy">
+      <figcaption>
+        CH₃O₂ + NO → CH₃O· + ·NO₂ — the dominant RO₂ + NO propagation;
+        CH₃O₂ alone is ~83% of the global RO₂ population.<sup class="cite"><a href="references.html#khan2015">[8]</a></sup>
+        k(298) ≈ 7.7×10⁻¹² cm³ molecule⁻¹ s⁻¹ (JPL Pub. 19-5).
+      </figcaption>
+    </figure>
+  </div>
+  <p>
+    More elementary-step animations (H₂ + OH, O₃ + NO titration,
+    CH₃O₂NO₂ formation) are on the
+    <a href="visualisations.html">visualisations</a> page.
+  </p>
+
   <div class="schematic">
     For the interactive map of the fast O<sub>3</sub>–NO<sub>x</sub>–HO<sub>x</sub>–VOC
     cycle, elementary-reaction animations (e.g. H<sub>2</sub> + OH → H<sub>2</sub>O
@@ -131,5 +205,7 @@
   and the STOCHEM-CRI applications<sup class="cite"><a href="references.html#utembe2010">[5]</a>,<a href="references.html#khan2015">[8]</a>,<a href="references.html#khan2017">[11]</a>,<a href="references.html#khan2020">[7]</a></sup>
   listed in the references.
 </footer>
+<script src="assets/js/cri.js"></script>
+<script src="assets/js/parcel_day.js"></script>
 </body>
 </html>
