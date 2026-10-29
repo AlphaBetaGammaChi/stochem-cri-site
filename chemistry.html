@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The chemistry — STOCHEM-CRI explainer</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<header class="site">
+  <nav class="site">
+    <a class="brand" href="index.html">STOCHEM<span class="sub">-CRI</span></a>
+    <a class="navlink" href="index.html">Overview</a>
+    <a class="navlink" href="model.html">The model</a>
+    <a class="navlink active" href="chemistry.html">The chemistry</a>
+    <a class="navlink" href="visualisations.html">Visualisations</a>
+    <a class="navlink" href="references.html">References</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>The CRI mechanism</h1>
+    <p class="lede">
+      CRI — <b>Common Representative Intermediates</b> — is a systematically
+      reduced VOC-oxidation mechanism benchmarked against the near-explicit
+      Master Chemical Mechanism.<sup class="cite"><a href="references.html#jenkin2008">[3]</a></sup>
+    </p>
+  </section>
+
+  <h2>Why a reduced mechanism?</h2>
+  <p>
+    A global CTM cannot afford the Master Chemical Mechanism's ~13,000 species
+    and ~50,000 reactions. The CRI construction method exploits a simple
+    observation: a VOC's photochemical ozone-forming potential correlates with
+    the number of reactive C–C and C–H bonds it contains.<sup class="cite"><a href="references.html#jenkin2008">[3]</a></sup>
+    MCM degradation intermediates are therefore lumped into a small set of
+    generic peroxy radicals, carbonyls and nitrates indexed by that
+    "reactive-bond" score — each lumped species is a <i>common representative</i>
+    of a whole family of real intermediates. Part 1 of the CRI papers describes
+    mechanism construction,<sup class="cite"><a href="references.html#jenkin2008">[3]</a></sup>
+    Part 2 the further reduction,<sup class="cite"><a href="references.html#watson2008">[4]</a></sup>
+    and Part 3 the secondary organic aerosol module.<sup class="cite"><a href="references.html#utembe2009">[6]</a></sup>
+    The result reproduces MCM ozone production and PAN/SOA formation within a
+    few percent at a fraction of the cost — about 5% of MCM's reactions.
+  </p>
+
+  <div class="cards">
+    <div class="card"><div class="big">241</div><div class="lbl">species — inorganics, CH4/CO, lumped VOC intermediates, PANs, SOA partners</div></div>
+    <div class="card"><div class="big">591</div><div class="lbl">thermal (bimolecular, termolecular, unimolecular) reactions</div></div>
+    <div class="card"><div class="big">110</div><div class="lbl">photolysis rates with a full diurnal cycle</div></div>
+    <div class="card"><div class="big">~120</div><div class="lbl">non-methane VOCs represented by the lumped scheme</div></div>
+  </div>
+
+  <h2>The core photochemical engine</h2>
+  <p>
+    Sunlight photolyses O<sub>3</sub> to O(<sup>1</sup>D), which reacts with
+    water vapour to make OH — the atmosphere's detergent. OH converts CO and
+    hydrocarbons to peroxy radicals (HO<sub>2</sub>, RO<sub>2</sub>), which
+    oxidise NO to NO<sub>2</sub>; photolysis of NO<sub>2</sub> then regenerates
+    O<sub>3</sub>. Whether a parcel <i>produces</i> or <i>destroys</i> ozone
+    depends on its NO<sub>x</sub> level and VOC loading — which is exactly what
+    a parcel-resolved model captures well, since each parcel carries its own
+    emission and chemistry history. Try the
+    <a href="visualisations.html#chemcycle">interactive cycle explorer</a> to see
+    the coupled reactions, and the night-time switch to see how the photolysis
+    channels switch off.
+  </p>
+
+  <h2>Photolysis</h2>
+  <p>
+    Photolysis rates are computed inside the model from the local solar zenith
+    angle, an ozone column (built per grid column), cloud fields and prescribed
+    cross-sections/quantum yields — giving a realistic diurnal cycle in every
+    parcel rather than a prescribed J-value climatology. About 110 photolysable
+    channels are represented in the current build, from
+    J(O<sub>3</sub>→O(<sup>1</sup>D)) and J(NO<sub>2</sub>) to the many carbonyl
+    splittings that drive VOC degradation.
+  </p>
+
+  <h2>Nitrogen reservoirs: PAN, RO<sub>2</sub>NO<sub>2</sub>, HNO<sub>3</sub></h2>
+  <p>
+    Acyl peroxy nitrates (PAN and its analogues) sequester NO<sub>x</sub> at
+    cold temperatures and release it on descent into warm air, ventilating
+    pollution to the remote troposphere — STOCHEM-CRI reproduces the observed
+    PAN budget well in the lower troposphere.<sup class="cite"><a href="references.html#khan2017">[11]</a></sup>
+    The extended mechanism adds <b>non-acyl peroxy nitrates</b>
+    (RO<sub>2</sub>NO<sub>2</sub>): 45 species including CH<sub>3</sub>O<sub>2</sub>NO<sub>2</sub>
+    whose short thermal lifetimes confine them to the cold upper troposphere,
+    where they act as an additional NO<sub>x</sub> reservoir and modestly raise
+    global O<sub>3</sub>, OH and NO<sub>3</sub>.<sup class="cite"><a href="references.html#khan2020">[7]</a></sup>
+    HNO<sub>3</sub> is the main terminal sink, removed by dry and wet
+    deposition.
+  </p>
+
+  <h2>Secondary organic aerosol</h2>
+  <p>
+    The CRI Part-3 module tracks semi-volatile oxidation products (peroxides,
+    acids, nitrates) that partition reversibly into an absorbing organic
+    aerosol phase — in the code, gas-phase precursors such as
+    <code>RCOOH25</code> equilibrate with particle-phase partners (the
+    <code>P####</code> species).<sup class="cite"><a href="references.html#utembe2009">[6]</a></sup>
+    Particles and their precursors are both advected, so SOA forms downwind of
+    VOC sources with realistic timescales.
+  </p>
+
+  <h2>Radical bookkeeping</h2>
+  <p>
+    STOCHEM-CRI has also been used to study the global RO<sub>2</sub>
+    distribution — dominated by CH<sub>3</sub>O<sub>2</sub> (~83%), with acyl
+    peroxy and isoprene-/terpene-derived radicals contributing most of the rest —
+    and to test the proposed role of RO<sub>2</sub>·H<sub>2</sub>O complexes in
+    perturbing HO<sub>x</sub> cycling.<sup class="cite"><a href="references.html#khan2015">[8]</a></sup>
+    Budget diagnostics written to <code>.bud</code> and <code>.tot</code> let
+    production and loss terms be closed species-by-species.
+  </p>
+
+  <div class="schematic">
+    For the interactive map of the fast O<sub>3</sub>–NO<sub>x</sub>–HO<sub>x</sub>–VOC
+    cycle, elementary-reaction animations (e.g. H<sub>2</sub> + OH → H<sub>2</sub>O
+    + H; O<sub>3</sub> + NO → NO<sub>2</sub> + O<sub>2</sub>;
+    CH<sub>3</sub>O<sub>2</sub> + NO<sub>2</sub> ⇌ CH<sub>3</sub>O<sub>2</sub>NO<sub>2</sub>),
+    and synthetic zonal-mean fields, see the
+    <a href="visualisations.html">visualisations</a> page.
+  </div>
+</main>
+
+<footer class="site">
+  STOCHEM-CRI explainer — chemistry. Mechanism description follows the CRI
+  papers<sup class="cite"><a href="references.html#jenkin2008">[3]</a>–<a href="references.html#utembe2009">[6]</a></sup>
+  and the STOCHEM-CRI applications<sup class="cite"><a href="references.html#utembe2010">[5]</a>,<a href="references.html#khan2015">[8]</a>,<a href="references.html#khan2017">[11]</a>,<a href="references.html#khan2020">[7]</a></sup>
+  listed in the references.
+</footer>
+</body>
+</html>

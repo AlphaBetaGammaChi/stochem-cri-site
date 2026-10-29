@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The model — STOCHEM-CRI explainer</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<header class="site">
+  <nav class="site">
+    <a class="brand" href="index.html">STOCHEM<span class="sub">-CRI</span></a>
+    <a class="navlink" href="index.html">Overview</a>
+    <a class="navlink active" href="model.html">The model</a>
+    <a class="navlink" href="chemistry.html">The chemistry</a>
+    <a class="navlink" href="visualisations.html">Visualisations</a>
+    <a class="navlink" href="references.html">References</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>The Lagrangian framework</h1>
+    <p class="lede">
+      STOCHEM couples archived meteorology (a fixed, gridded description of the
+      atmosphere) to a Lagrangian chemical description carried by ~50,000 moving
+      air parcels.<sup class="cite"><a href="references.html#collins1997">[1]</a></sup>
+    </p>
+  </section>
+
+  <h2>Eulerian meteorology, Lagrangian chemistry</h2>
+  <p>
+    The model is <b>offline</b>: it does not compute its own weather. Winds,
+    temperatures, humidities, cloud and precipitation fields are read from an
+    archived numerical weather prediction dataset — historically the UK Met
+    Office Unified Model,<sup class="cite"><a href="references.html#collins1997">[1]</a></sup>
+    with recent configurations driven by ECMWF-era analyses. The meteorology
+    lives on a fixed Eulerian mesh and is interpolated in space and time to each
+    parcel's position.
+  </p>
+  <p>
+    Each of the <b>50,048 air parcels</b> is a Lagrangian control volume of
+    constant mass. A parcel stores its position (longitude, latitude, eta level)
+    plus the full concentration vector of all transported species. Because
+    parcels are constant-mass, mass conservation is built in: the global
+    integral of a tracer changes only through emissions, chemistry and
+    deposition, never through transport error.
+  </p>
+
+  <figure class="viz">
+    <img src="assets/img/lagrangian_vs_eulerian_montage.png" alt="Side-by-side schematic of Eulerian grid boxes versus Lagrangian moving air parcels" loading="lazy">
+    <figcaption>
+      Left: an Eulerian model exchanges tracer between fixed boxes by flux
+      divergences — cheap, but prone to numerical diffusion. Right: STOCHEM's
+      parcels follow the analysed wind exactly; sub-grid mixing is added back
+      stochastically. Validated against <sup>222</sup>Rn.<sup class="cite"><a href="references.html#stevenson1998">[2]</a></sup>
+    </figcaption>
+  </figure>
+
+  <h2>The grid and the timestep</h2>
+  <p>
+    Parcel positions are continuous, but mixing, emissions, deposition and
+    output are organised on an Eulerian analysis grid. In the current
+    STOCHEM-CRI configuration this is <code>72 × 36 × 9</code> — a 5° × 5°
+    horizontal mesh with nine unevenly spaced eta (terrain-following/pressure)
+    levels spanning the troposphere to roughly 100 hPa. (The original
+    configuration used a finer 1.25° × 0.83° × 12-level mesh with the same
+    ~50,000-parcel philosophy.<sup class="cite"><a href="references.html#khan2017">[11]</a></sup>)
+  </p>
+  <p>
+    Time is handled by <b>operator splitting</b>. A three-hourly advection step
+    moves every parcel along the interpolated wind field. Between advection
+    steps the model applies its physical and chemical processes on shorter
+    sub-timesteps: the original implementation used a five-minute chemistry
+    step,<sup class="cite"><a href="references.html#collins1997">[1]</a></sup> and the
+    current Fortran code integrates the stiff CRI system with an error-controlled
+    solver inside each parcel independently.
+  </p>
+
+  <h2>Stochastic mixing — the "STO" in STOCHEM</h2>
+  <p>
+    Pure parcel advection alone would never mix neighbouring air masses. STOCHEM
+    emulates sub-grid turbulent diffusion by <b>randomly redistributing the
+    parcels</b> that fall inside each grid cell: parcels are exchanged within a
+    cell so that, statistically, a cell's population samples its well-mixed
+    concentration, while still allowing freshly emitted or chemically distinct
+    air to coexist transiently in the same cell.<sup class="cite"><a href="references.html#collins1997">[1]</a>,<a href="references.html#stevenson1998">[2]</a></sup>
+    This is why the model is called a <i>stochastic</i> chemistry model — and why
+    two runs with different random seeds (or different numbers of OpenMP
+    threads) are members of the same stochastic ensemble rather than
+    bit-identical trajectories.
+  </p>
+  <p>
+    <b>Convection</b> is treated separately: parcels are entrained into and
+    detrained from convective updrafts using convective mass fluxes diagnosed
+    from the driving meteorology, which is essential for realistic vertical
+    profiles of short-lived tracers.<sup class="cite"><a href="references.html#stevenson1998">[2]</a>,<a href="references.html#collins2002">[10]</a></sup>
+    Boundary-layer mixing is applied within the lowest levels on top of the
+    convective scheme.
+  </p>
+
+  <h2>Emissions and deposition</h2>
+  <div class="two-col">
+    <div class="panel">
+      <h3>Emissions (<code>EMREAD</code> / <code>LIGHTREAD</code>)</h3>
+      <p>
+        Surface sources (anthropogenic, biomass burning, biogenic, oceanic, soil)
+        are injected into parcels residing in the boundary-layer cells.
+        <b>Aircraft NO<sub>x</sub></b> and <b>lightning NO<sub>x</sub></b> are
+        special: they are read as altitude-resolved 3-D fields
+        (<code>ACNOXmm.OUT</code>, <code>LNOXmm.OUT</code>, plus a military
+        aircraft file) and injected at flight levels,<sup class="cite"><a href="references.html#stevenson1997">[9]</a></sup>
+        gated by the <code>DONO2</code> switch.
+      </p>
+    </div>
+    <div class="panel">
+      <h3>Deposition (<code>DVLAND</code> / <code>DVSEA</code>)</h3>
+      <p>
+        Dry deposition uses species- and surface-dependent deposition velocities
+        applied to parcels in the lowest layer. Wet deposition removes soluble
+        species via scavenging in both large-scale (dynamic) and convective
+        precipitation. Both are accumulated as flux diagnostics that can be
+        written per grid cell (<code>.bud</code>) or globally (<code>.tot</code>).
+      </p>
+    </div>
+  </div>
+
+  <h2>Initialisation and restarts</h2>
+  <p>
+    A <b>cold start</b> (<code>INICON</code>) seeds every parcel with a
+    hard-coded, zonally-symmetric July climatology — latitude-band profiles for
+    O<sub>3</sub>, CO, CH<sub>4</sub> and a handful of emitted species, with
+    mechanism intermediates near zero — so the model needs a spin-up period for
+    transport and chemistry to develop realistic structure. A <b>warm
+    start</b> reads <code>RESTART.BIN</code>/<code>DUMP.BIN</code>, restoring the
+    full parcel list and continuing seamlessly; periodic dumps let a year-long
+    run be chained from monthly submissions.
+  </p>
+
+  <h2>What comes out</h2>
+  <table class="ref">
+    <tr><th>File</th><th>Contents</th><th>Typical use</th></tr>
+    <tr><td><code>stoch3d.dat</code></td><td>Eulerian-mapped species fields (mol mol<sup>−1</sup>), monthly</td><td>surface maps, zonal means, vertical profiles</td></tr>
+    <tr><td><code>stoch3d.bud</code></td><td>3-D process fluxes flagged in <code>flux10_OH.dat</code> (molecules cell<sup>−1</sup> per period)</td><td>production/loss budgets, deposition maps</td></tr>
+    <tr><td><code>stoch3d.tot</code></td><td>Global inventories and integrated fluxes per timestep</td><td>burden and lifetime time series</td></tr>
+    <tr><td><code>stoch3d.sta</code></td><td>Station/diagnostic time series</td><td>site comparisons</td></tr>
+    <tr><td><code>stoch3d.out</code></td><td>Run log: inputs, timestepping, completion</td><td>provenance checks</td></tr>
+    <tr><td><code>DUMP.BIN</code></td><td>Full parcel state for restart</td><td>warm-start continuation</td></tr>
+  </table>
+
+  <div class="tip">
+    Because output is written on the Eulerian analysis grid by binning parcels
+    into cells, grid-mean fields are themselves stochastic: sparsely populated
+    cells (upper levels, poles) carry sampling noise. Comparing runs should use
+    burden-level or sufficiently averaged quantities — see the
+    <a href="references.html">references</a> for transport-validation studies.
+  </div>
+</main>
+
+<footer class="site">
+  STOCHEM-CRI explainer — model architecture. Schematic descriptions follow
+  Collins et al. (1997)<sup class="cite"><a href="references.html#collins1997">[1]</a></sup>
+  and Stevenson et al. (1998)<sup class="cite"><a href="references.html#stevenson1998">[2]</a></sup>;
+  details such as grid dimensions describe the current STOCHEM-CRI build.
+</footer>
+</body>
+</html>

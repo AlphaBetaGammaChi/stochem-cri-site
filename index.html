@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How STOCHEM-CRI Works — a Lagrangian chemistry–transport model</title>
+<meta name="description" content="An educational, visual explanation of the STOCHEM-CRI global Lagrangian tropospheric chemistry transport model, with citations.">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<header class="site">
+  <nav class="site">
+    <a class="brand" href="index.html">STOCHEM<span class="sub">-CRI</span></a>
+    <a class="navlink active" href="index.html">Overview</a>
+    <a class="navlink" href="model.html">The model</a>
+    <a class="navlink" href="chemistry.html">The chemistry</a>
+    <a class="navlink" href="visualisations.html">Visualisations</a>
+    <a class="navlink" href="references.html">References</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>How <span class="accent">STOCHEM-CRI</span> works</h1>
+    <p class="lede">
+      STOCHEM is a global three-dimensional <b>Lagrangian</b> tropospheric
+      chemistry–transport model: instead of solving chemistry on a fixed grid,
+      it follows tens of thousands of individual air parcels as they are blown
+      around the atmosphere, and integrates a detailed chemical mechanism inside
+      every single one.<sup class="cite"><a href="references.html#collins1997">[1]</a></sup>
+    </p>
+  </section>
+
+  <div class="cards">
+    <div class="card"><div class="big">50,048</div><div class="lbl">constant-mass air parcels advected by analysed winds</div></div>
+    <div class="card"><div class="big">241</div><div class="lbl">chemical species in the CRI v2-R5 mechanism</div></div>
+    <div class="card"><div class="big">~700</div><div class="lbl">reactions: 591 thermal + 110 photolysis rates</div></div>
+    <div class="card"><div class="big">72 × 36 × 9</div><div class="lbl">Eulerian analysis grid (5° × 5°, 9 eta levels) used to map parcels back to fields</div></div>
+  </div>
+
+  <h2>The one-sentence idea</h2>
+  <p>
+    An Eulerian model (like most weather and climate models) divides the
+    atmosphere into a fixed mesh of boxes and solves transport as fluxes between
+    them. STOCHEM does the opposite: it keeps the <i>meteorological</i>
+    description on a grid (winds, temperature, humidity, clouds from a numerical
+    weather prediction model), but represents the <i>chemistry</i> inside
+    ~50,000 moving air parcels. Each parcel carries a full vector of ~241
+    chemical species and integrates the CRI photochemical mechanism as it
+    travels — collecting emissions, being mixed by turbulence and convection,
+    and losing material to dry and wet deposition.<sup class="cite"><a href="references.html#collins1997">[1]</a>,<a href="references.html#stevenson1998">[2]</a></sup>
+  </p>
+
+  <figure class="viz">
+    <img src="assets/img/stochem_parcels_montage.png" alt="Schematic animation frames of STOCHEM air parcels being advected around the globe" loading="lazy">
+    <figcaption>
+      Schematic: STOCHEM divides the troposphere into ~50,000 constant-mass air
+      parcels. Parcel positions are advected by archived meteorological wind
+      fields; chemistry is integrated independently inside each parcel, and
+      concentrations are mapped back onto an Eulerian grid for output.
+    </figcaption>
+  </figure>
+
+  <h2>Why Lagrangian?</h2>
+  <p>
+    The approach has two big practical advantages.<sup class="cite"><a href="references.html#stevenson1998">[2]</a></sup>
+    First, advection is trivial and exact — each parcel simply follows the wind
+    — so there is no numerical diffusion smearing out plumes, and no
+    negative-mixing-ratio artefacts. Second, the expensive part (integrating the
+    chemical mechanism) is done once per parcel per timestep and is
+    embarrassingly parallel across parcels, which is why STOCHEM ports well to
+    OpenMP. The cost is that "diffusion" is not automatic: sub-grid mixing is
+    emulated by stochastically redistributing the parcels assigned to each grid
+    cell — hence the name, <b>STO</b>chastic <b>CHEM</b>istry model.
+  </p>
+
+  <h2>The CRI mechanism</h2>
+  <p>
+    The chemistry is the <b>Common Representative Intermediates</b> mechanism
+    (CRI v2-R5), a reduced VOC-oxidation mechanism systematically derived from
+    the near-explicit Master Chemical Mechanism (MCM v3.1).<sup class="cite"><a href="references.html#jenkin2008">[3]</a>,<a href="references.html#watson2008">[4]</a>,<a href="references.html#utembe2010">[5]</a></sup>
+    VOC intermediates are lumped into generic "common representative" species
+    indexed by their number of reactive C–C and C–H bonds — a simple proxy for
+    photochemical ozone-forming potential — which lets the mechanism describe
+    methane plus ~120 non-methane VOCs with a few hundred species instead of the
+    MCM's many thousands. A dedicated secondary organic aerosol (SOA) module
+    handles gas-to-particle partitioning.<sup class="cite"><a href="references.html#utembe2009">[6]</a></sup>
+    Extended variants add non-acyl peroxy nitrates (RO<sub>2</sub>NO<sub>2</sub>)
+    as upper-tropospheric NO<sub>x</sub> reservoirs<sup class="cite"><a href="references.html#khan2020">[7]</a></sup>
+    and peroxy-radical–water complexes.<sup class="cite"><a href="references.html#khan2015">[8]</a></sup>
+  </p>
+
+  <div class="panel">
+    <h3>One timestep, end to end</h3>
+    <div class="flow">
+      <div class="step"><b>Advect</b>move each parcel along the analysed 3-D wind field</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Mix</b>stochastic exchange between parcels within each grid cell + boundary-layer and convective redistribution</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Emit</b>add surface, biomass-burning, lightning and altitude-resolved aircraft emissions</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Chemistry</b>integrate all ~700 CRI reactions in every parcel (the expensive step)</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Deposit</b>dry deposition velocities + wet scavenging by resolved and convective rain</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Remap</b>grid parcels onto the 72×36×9 Eulerian mesh for .dat / .bud / .tot output</div>
+    </div>
+  </div>
+
+  <h2>What it has been used for</h2>
+  <ul>
+    <li>Global tropospheric ozone budgets and the response of O<sub>3</sub> to NO<sub>x</sub> emission controls.<sup class="cite"><a href="references.html#collins1997">[1]</a></sup></li>
+    <li>Altitude-resolved aircraft NO<sub>x</sub> emissions and their ozone impact.<sup class="cite"><a href="references.html#stevenson1997">[9]</a></sup></li>
+    <li>Transport validation against <sup>222</sup>Rn, including boundary-layer and convective schemes.<sup class="cite"><a href="references.html#stevenson1998">[2]</a>,<a href="references.html#collins2002">[10]</a></sup></li>
+    <li>Global budgets of PAN,<sup class="cite"><a href="references.html#khan2017">[11]</a></sup> peroxy radicals and RO<sub>2</sub>·H<sub>2</sub>O complexes,<sup class="cite"><a href="references.html#khan2015">[8]</a></sup> and RO<sub>2</sub>NO<sub>2</sub> reservoirs.<sup class="cite"><a href="references.html#khan2020">[7]</a></sup></li>
+    <li>Secondary organic aerosol formation from lumped VOC precursors.<sup class="cite"><a href="references.html#utembe2009">[6]</a></sup></li>
+    <li>Emission-scenario studies — including hydrogen- and alternative-fuel aviation perturbations — run on HPC clusters such as Blue Pebble.</li>
+  </ul>
+
+  <h2>Explore</h2>
+  <div class="cards">
+    <a class="card" href="model.html"><b>The model</b><div class="lbl">Lagrangian vs Eulerian, the grid, operator splitting, stochastic mixing, restarts, outputs</div></a>
+    <a class="card" href="chemistry.html"><b>The chemistry</b><div class="lbl">How CRI reduces the MCM, photolysis, emissions, deposition, RO2NO2 and SOA extensions</div></a>
+    <a class="card" href="visualisations.html"><b>Visualisations</b><div class="lbl">Interactive parcel advection, the HOx/NOx/O3 cycle explorer, and a zonal-mean field viewer</div></a>
+    <a class="card" href="references.html"><b>References</b><div class="lbl">Full citation list with DOIs for every claim on this site</div></a>
+  </div>
+</main>
+
+<footer class="site">
+  STOCHEM-CRI explainer — a private educational site. All interactive figures are
+  clearly-labelled schematic illustrations, not model output, unless stated
+  otherwise. Built as a dependency-free static site.
+</footer>
+</body>
+</html>

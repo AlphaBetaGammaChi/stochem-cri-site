@@ -1,0 +1,303 @@
+/* STOCHEM-CRI educational site — dependency-free stylesheet */
+
+:root {
+  --bg: #0d1117;
+  --bg-panel: #161b22;
+  --bg-inset: #0a0e13;
+  --border: #2d333b;
+  --text: #e6edf3;
+  --text-dim: #9da7b3;
+  --accent: #58a6ff;
+  --accent2: #3fb950;
+  --accent3: #d29922;
+  --link: #58a6ff;
+  --code-bg: #1c2128;
+  --maxw: 1060px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  line-height: 1.65;
+}
+
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+header.site {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+nav.site {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0.7rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1.4rem;
+}
+
+nav.site .brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text);
+  margin-right: auto;
+}
+
+nav.site .brand span.sub {
+  color: var(--accent2);
+  font-weight: 400;
+}
+
+nav.site a.navlink {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  padding: 0.15rem 0.4rem;
+}
+
+nav.site a.navlink:hover { color: var(--text); text-decoration: none; }
+nav.site a.navlink.active { color: var(--accent); }
+
+main {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+.hero {
+  padding: 2.5rem 0 1.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.hero h1 {
+  font-size: 2.4rem;
+  margin: 0 0 0.6rem;
+  line-height: 1.2;
+}
+
+.hero h1 .accent { color: var(--accent2); }
+
+.hero p.lede {
+  font-size: 1.15rem;
+  color: var(--text-dim);
+  max-width: 46em;
+}
+
+h2 {
+  font-size: 1.5rem;
+  margin: 2.2rem 0 0.8rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+h2:first-of-type { border-top: none; padding-top: 0; }
+
+h3 { font-size: 1.15rem; margin: 1.6rem 0 0.5rem; }
+
+p { margin: 0.6rem 0; }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+  margin: 1.4rem 0;
+}
+
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.1rem 1.2rem;
+}
+
+.card .big {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.card .lbl {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  margin-top: 0.15rem;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.2rem 1.3rem;
+  margin: 1.2rem 0;
+}
+
+.panel h3 { margin-top: 0; }
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.4rem;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .two-col { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 1.9rem; }
+}
+
+figure.viz {
+  margin: 1.4rem 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+figure.viz img, figure.viz canvas, figure.viz svg {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+  border-radius: 6px;
+  background: var(--bg-inset);
+}
+
+figure.viz figcaption {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin-top: 0.7rem;
+  line-height: 1.5;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.2rem;
+  align-items: center;
+  margin: 0.6rem 0 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+.controls label { display: flex; align-items: center; gap: 0.45rem; }
+
+button.btn {
+  background: var(--code-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+button.btn:hover { border-color: var(--accent); color: var(--accent); }
+button.btn.on { border-color: var(--accent2); color: var(--accent2); }
+
+input[type="range"] { accent-color: var(--accent); }
+
+code, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 0.08em 0.4em;
+  font-size: 0.9em;
+}
+
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  overflow-x: auto;
+  font-size: 0.86rem;
+}
+
+pre code { background: none; padding: 0; }
+
+table.ref {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+table.ref td, table.ref th {
+  border-bottom: 1px solid var(--border);
+  padding: 0.55rem 0.6rem;
+  vertical-align: top;
+  text-align: left;
+}
+
+table.ref th { color: var(--text-dim); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+ol.refs li, ul.refs li {
+  margin-bottom: 0.9rem;
+  line-height: 1.55;
+}
+
+.tip {
+  border-left: 3px solid var(--accent3);
+  background: rgba(210, 153, 34, 0.08);
+  padding: 0.7rem 1rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1rem 0;
+  font-size: 0.93rem;
+}
+
+.schematic {
+  border-left: 3px solid var(--accent2);
+  background: rgba(63, 185, 80, 0.07);
+  padding: 0.7rem 1rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1rem 0;
+  font-size: 0.93rem;
+  color: var(--text-dim);
+}
+
+footer.site {
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 1.6rem 1.25rem 3rem;
+}
+
+sup.cite { font-size: 0.75em; }
+sup.cite a { color: var(--accent2); }
+
+.flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 1.2rem 0;
+}
+
+.flow .step {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.9rem;
+  text-align: center;
+  flex: 1 1 140px;
+  min-width: 130px;
+}
+
+.flow .step b { display: block; color: var(--accent); font-size: 0.95rem; }
+
+.flow .arrow { color: var(--text-dim); font-weight: 700; }
+
+@media (max-width: 760px) { .flow .arrow { display: none; } }

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visualisations — STOCHEM-CRI explainer</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<header class="site">
+  <nav class="site">
+    <a class="brand" href="index.html">STOCHEM<span class="sub">-CRI</span></a>
+    <a class="navlink" href="index.html">Overview</a>
+    <a class="navlink" href="model.html">The model</a>
+    <a class="navlink" href="chemistry.html">The chemistry</a>
+    <a class="navlink active" href="visualisations.html">Visualisations</a>
+    <a class="navlink" href="references.html">References</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>Visualisations</h1>
+    <p class="lede">
+      Interactive schematics of the Lagrangian machinery, the fast photochemical
+      cycle, and the Eulerian analysis grid — plus real animations rendered from
+      the model's own output and mechanism files.
+    </p>
+  </section>
+
+  <div class="schematic">
+    The three interactive figures below are <b>schematics</b>: the wind field,
+    wind-field eddies, continent outlines and analytic species fields are
+    stylised for teaching. The animated GIFs further down are generated from the
+    actual model code, output files and reaction specs.
+  </div>
+
+  <h2>1. Parcels, winds and the Eulerian remap</h2>
+  <p>
+    Nine hundred schematic air parcels are advected by a stylised wind field —
+    tropical easterlies, mid-latitude westerly jets, evolving synoptic eddies —
+    while a tracer is continuously emitted at the marker and lost by first-order
+    decay. <b>Click anywhere on the map to move the source.</b> Toggle the
+    Eulerian view to see how the model bins parcels back onto the 72 × 36 grid
+    to produce the fields written to <code>stoch3d.dat</code>.
+  </p>
+  <div class="controls">
+    <button class="btn" id="p-play">Pause</button>
+    <button class="btn" id="p-reset">Reset parcels</button>
+    <button class="btn" id="p-grid">Eulerian grid-mean overlay</button>
+    <label>Wind speed <input type="range" id="p-speed" min="0.2" max="3" step="0.1" value="1"></label>
+  </div>
+  <figure class="viz">
+    <canvas id="parcel-canvas" width="960" height="480"></canvas>
+    <figcaption>
+      Schematic Lagrangian advection: parcels carry tracer (colour = mixing
+      ratio); grey parcels are clean background air. The white cross is the
+      emission source — click the map to relocate it. The grid overlay shows the
+      same field as cell means, the quantity STOCHEM actually writes out.
+      Compare Stevenson et al. (1998)<sup class="cite"><a href="references.html#stevenson1998">[2]</a></sup>
+      for the real transport validation.
+    </figcaption>
+  </figure>
+
+  <h2 id="chemcycle">2. The fast photochemical cycle</h2>
+  <p>
+    A simplified map of the O<sub>3</sub>–NO<sub>x</sub>–HO<sub>x</sub>–VOC
+    engine at the heart of CRI. Solid blue edges are thermal reactions, dashed
+    amber edges need sunlight. Click a species for its role and key reactions;
+    switch to night to watch the photolysis channels close and the reservoir
+    chemistry (PAN, RO<sub>2</sub>NO<sub>2</sub>, N<sub>2</sub>O<sub>5</sub>/HNO<sub>3</sub>
+    pathways) dominate.<sup class="cite"><a href="references.html#jenkin2008">[3]</a>,<a href="references.html#khan2020">[7]</a></sup>
+  </p>
+  <div class="controls">
+    <button class="btn" id="chem-night">Switch to night</button>
+    <span>Click any species node.</span>
+  </div>
+  <div class="two-col">
+    <figure class="viz">
+      <svg id="chem-svg" viewBox="0 0 960 540" width="960" height="540"></svg>
+      <figcaption>
+        Schematic reaction network (teaching subset of the ~700-reaction CRI
+        mechanism). Amber dashed = photolysis-driven; grey = active at night.
+      </figcaption>
+    </figure>
+    <div class="panel" id="chem-info" style="min-height:200px"></div>
+  </div>
+
+  <h2>3. The Eulerian analysis grid</h2>
+  <p>
+    STOCHEM's diagnostic output is written on a 36-latitude × 9-level zonal
+    mesh in pressure coordinates. Select a species and slide the season to see
+    how a schematic zonal-mean field shifts — the same layout used for the
+    model's real zonal-mean plots (with the manuscript's discrete rainbow
+    palette).
+  </p>
+  <div class="controls">
+    <label>Species
+      <select id="g-species">
+        <option>O3</option><option>CO</option><option>NOx</option>
+        <option>H2</option><option>CH4</option>
+      </select>
+    </label>
+    <label>Season <input type="range" id="g-season" min="-1" max="1" step="0.05" value="0"></label>
+    <span id="g-season-label">equinox</span>
+  </div>
+  <figure class="viz">
+    <canvas id="grid-canvas" width="960" height="430"></canvas>
+    <figcaption>
+      Schematic analytic zonal means on the 36 × 9 analysis grid — illustrations
+      of the expected spatial patterns, not STOCHEM output. The real model's
+      zonal-mean O₃ and H₂ fields are animated below.
+    </figcaption>
+  </figure>
+
+  <h2>Rendered from the model</h2>
+  <p>
+    These animations were produced from the STOCHEM Fortran code's own output
+    and input files (mechanism, emission fields, 3-D mixing-ratio output) — real
+    model data, not schematics.
+  </p>
+
+  <div class="two-col">
+    <figure class="viz">
+      <img src="assets/img/stochem_cycle.gif" alt="Animation of the STOCHEM timestep cycle" loading="lazy">
+      <figcaption>The model's operator-split timestep, rendered from the code's actual process sequence.</figcaption>
+    </figure>
+    <figure class="viz">
+      <img src="assets/img/stochem_h2_map.gif" alt="Animated surface H2 map from STOCHEM output" loading="lazy">
+      <figcaption>Monthly surface H₂ mixing ratio from a real STOCHEM-CRI run (<code>stoch3d.dat</code>).</figcaption>
+    </figure>
+  </div>
+  <div class="two-col">
+    <figure class="viz">
+      <img src="assets/img/stochem_o3_zonal.gif" alt="Animated zonal-mean O3 cross-section from STOCHEM output" loading="lazy">
+      <figcaption>Zonal-mean O₃ through the year on the 36 × 9 analysis grid (real run output).</figcaption>
+    </figure>
+    <figure class="viz">
+      <img src="assets/img/h2_oh.gif" alt="Ball-and-stick animation of H2 + OH reaction" loading="lazy">
+      <figcaption>Elementary-step animation: H₂ + OH → H₂O + H — the sink that gives atmospheric H₂ its ~2-year lifetime (rate data per JPL evaluation).</figcaption>
+    </figure>
+  </div>
+  <div class="two-col">
+    <figure class="viz">
+      <img src="assets/img/o3_no.gif" alt="Ball-and-stick animation of O3 + NO reaction" loading="lazy">
+      <figcaption>O₃ + NO → NO₂ + O₂: night-time titration of ozone by fresh NO emissions.</figcaption>
+    </figure>
+    <figure class="viz">
+      <img src="assets/img/ch3o2_no2.gif" alt="Ball-and-stick animation of CH3O2 + NO2 forming CH3O2NO2" loading="lazy">
+      <figcaption>CH₃O₂ + NO₂ ⇌ CH₃O₂NO₂ — formation of the simplest RO₂NO₂ reservoir species added by Khan et al. (2020).<sup class="cite"><a href="references.html#khan2020">[7]</a></sup></figcaption>
+    </figure>
+  </div>
+</main>
+
+<footer class="site">
+  Interactive figures are teaching schematics; GIFs are rendered from real
+  STOCHEM-CRI code/output or JSON-defined reaction specs.
+</footer>
+<script src="assets/js/parcels.js"></script>
+<script src="assets/js/chemistry.js"></script>
+<script src="assets/js/grid.js"></script>
+</body>
+</html>
