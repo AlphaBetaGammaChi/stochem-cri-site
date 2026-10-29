@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The mathematics — STOCHEM-CRI explainer</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<header class="site">
+  <nav class="site">
+    <a class="brand" href="index.html">STOCHEM<span class="sub">-CRI</span></a>
+    <a class="navlink" href="index.html">Overview</a>
+    <a class="navlink" href="model.html">The model</a>
+    <a class="navlink" href="chemistry.html">The chemistry</a>
+    <a class="navlink active" href="maths.html">The maths</a>
+    <a class="navlink" href="visualisations.html">Visualisations</a>
+    <a class="navlink" href="code.html">Code tour</a>
+    <a class="navlink" href="slides.html">Slides</a>
+    <a class="navlink" href="references.html">References</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>The mathematics</h1>
+    <p class="lede">
+      Every component of STOCHEM is a recognisable object from applied
+      mathematics: characteristics of a conservation law, Runge–Kutta
+      integration, Itô diffusion, Bernoulli sampling, a stiff ODE solved by
+      linearised implicit iteration, and a Poisson census. This page collects
+      them.
+    </p>
+  </section>
+
+  <h2>1. From a conservation law to particles</h2>
+  <p>
+    A mixing ratio <code>c(x,t)</code> transported by the wind obeys the
+    advection equation with sources:
+  </p>
+  <div class="eq">∂c/∂t + u·∇c = S(c, x, t)</div>
+  <p>
+    The <b>method of characteristics</b> says: along any curve
+    <code>x(t)</code> satisfying
+  </p>
+  <div class="eq">dx/dt = u(x, t)</div>
+  <p>
+    the PDE collapses to an ordinary differential equation for the material
+    derivative:
+  </p>
+  <div class="eq">Dc/Dt ≡ ∂c/∂t + u·∇c = S</div>
+  <p>
+    A Lagrangian model is just a discretisation of the characteristic
+    family: instead of solving the PDE on a mesh, STOCHEM integrates the ODE
+    pair along 50,048 characteristic curves — its air parcels.<sup class="cite"><a href="references.html#collins1997">[1]</a></sup>
+    Three consequences fall out for free:
+  </p>
+  <ul>
+    <li><b>No CFL condition on advection</b> — there is no grid Courant number; the step is limited only by trajectory accuracy, hence the 3-hour <code>ASTEP</code>.</li>
+    <li><b>No numerical diffusion and no negative concentrations</b> — nothing is fluxed between boxes, so nothing can be oversmeared or driven negative.</li>
+    <li><b>Exact mass conservation</b> — parcels are constant mass; the global tracer integral changes only through S, never through transport error.</li>
+  </ul>
+
+  <h2>2. The trajectory: fourth-order Runge–Kutta</h2>
+  <p>
+    Each parcel's position is advanced over the 3-hour step by classical RK4
+    (subroutine <code>RKO4</code>), with the wind field interpolated in space
+    and time to each trial position by <code>VELOC</code>/<code>INTERP</code>:
+  </p>
+  <div class="eq">
+    k₁ = u(x, t)&nbsp;&nbsp;·&nbsp;&nbsp;k₂ = u(x + Δt·k₁/2, t + Δt/2)<br>
+    k₃ = u(x + Δt·k₂/2, t + Δt/2)&nbsp;&nbsp;·&nbsp;&nbsp;k₄ = u(x + Δt·k₃, t + Δt)<br>
+    xⁿ⁺¹ = xⁿ + (Δt/6)(k₁ + 2k₂ + 2k₃ + k₄)
+  </div>
+  <p>
+    Local error is O(Δt⁵); at Δt = 3 h against 6-hourly analysed winds the
+    dominant error is the temporal interpolation of <code>u</code>, not the
+    integrator — which is why ASTEP is chosen to match the met frequency
+    rather than any stability limit.
+  </p>
+
+  <h2>3. The random walk that <i>is</i> diffusion</h2>
+  <p>
+    A parcel following only the resolved wind would never mix with its
+    neighbours. STOCHEM adds the missing turbulence as an Itô stochastic
+    differential equation:
+  </p>
+  <div class="eq">dx = u(x,t) dt + √(2K) dW</div>
+  <p>
+    discretised in <code>VELOC</code> as an Euler–Maruyama kick added to the
+    deterministic velocity, <code>S·√(2K/ASTEP)</code> with
+    <code>S ~ N(0,1)</code>:
+  </p>
+  <div class="eq">Δx = u Δt + √(2KΔt)·N(0,1)</div>
+  <p>
+    With <code>HDIFF = 5300 m² s⁻¹</code> and Δt = 10,800 s, the rms
+    horizontal displacement per step is √(2·5300·10800) ≈ <b>10.7 km</b> —
+    switched off near the poles where the metric term dominates.
+    The key identity: the <b>Fokker–Planck equation</b> of this SDE is
+  </p>
+  <div class="eq">∂ρ/∂t + ∇·(uρ) = K ∇²ρ</div>
+  <p>
+    i.e. the ensemble of stochastic parcels solves the same
+    advection–diffusion equation an Eulerian model solves explicitly — but by
+    Monte Carlo rather than by finite differences.<sup class="cite"><a href="references.html#stevenson1998">[2]</a></sup>
+    The price is statistical noise; the payoff is zero numerical diffusion.
+  </p>
+
+  <h2>4. Convection as Bernoulli sampling</h2>
+  <p>
+    The <code>CLMIX</code> scheme computes a convective fraction per met
+    column — from the precipitation rate via a mass-flux estimate
+    (<code>MFLUX = ACP·Δt / (PEFF·q)</code>) or 4× cloud cover for
+    non-precipitating cloud — then draws an independent Bernoulli trial for
+    each parcel below cloud top:
+  </p>
+  <div class="eq">X ~ Bernoulli(FRAC),&nbsp;&nbsp; entrained if R &lt; FRAC</div>
+  <p>
+    Entrained parcels in a cell are all set to the group mean
+    <code>c̄ = (1/N_e)Σ cᵢ</code>. Two properties worth noting:
+  </p>
+  <ul>
+    <li><b>Mass is conserved exactly.</b> After mixing, the sum over the entrained set is N_e·c̄ = Σcᵢ — the pre-mixing sum. No mass is created or destroyed, only redistributed.</li>
+    <li><b>Convergence is geometric.</b> Each event retains a fraction (1 − FRAC) of parcels unmixed, so column-mean deviations decay roughly like (1 − FRAC) per event — the column relaxes exponentially toward homogeneity at a rate set by the convection intensity.<sup class="cite"><a href="references.html#collins2002">[10]</a></sup></li>
+  </ul>
+
+  <h2>5. The chemistry: a stiff ODE, and how it is actually solved</h2>
+  <p>
+    Inside each parcel the CRI mechanism is a coupled system
+  </p>
+  <div class="eq">dc/dt = f(c) = P(c) − L(c)·c,&nbsp;&nbsp; c ∈ ℝ²⁴¹</div>
+  <p>
+    where <code>P</code> collects all production terms and <code>L</code> the
+    (pseudo-)first-order loss coefficients. It is violently <b>stiff</b>:
+    radical lifetimes are ~10⁻³ s while CH₄ lives ~10 years — a span of
+    ~10¹¹ in eigenvalues — so explicit schemes would need impossibly small
+    steps. STOCHEM does not use a general stiff solver. Instead, each 3-hour
+    advection step is divided into <code>DTS = 300 s</code> chemistry
+    substeps, and each substep applies a <b>linearised implicit
+    (quasi-analytic) update</b>:<sup class="cite"><a href="references.html#collins1997">[1]</a></sup>
+  </div>
+  <div class="eq">cⁿ⁺¹ = (cⁿ + Δt·P) / (1 + Δt·L)</div>
+  <p>
+    iterated as a Picard fixed point — <code>NIT = 8</code> iterations in
+    <code>DERIV</code>, with <code>P</code> and <code>L</code> re-evaluated at
+    the current iterate each pass. The formula is the exact solution of the
+    linearised ODE <code>dc/dt = P − Lc</code> with frozen coefficients —
+    unconditionally positive, stable for any Δt, and exact in the limits
+    Δt·L → 0 (Euler) and t → ∞ (steady state c = P/L). Rate constants come
+    from <code>CHEMCO</code> in Arrhenius form
+    <code>k = A·e^(−E/RT)</code>, equilibria and Henry's-law constants from
+    <code>EQMCON</code>.
+  </p>
+
+  <h2>6. Photolysis: an integral over the spectrum</h2>
+  <p>
+    Each photolysis rate is the spectral integral
+  </p>
+  <div class="eq">J = ∫ σ(λ,T)·φ(λ)·F(λ,χ, z, O₃) dλ</div>
+  <p>
+    of absorption cross-section σ × quantum yield φ × actinic flux F, which
+    depends on solar zenith angle χ, altitude and overhead ozone. Evaluating
+    the integral at every parcel every step would dominate the run time, so
+    <code>PHOT</code> tabulates J on a grid of χ/level/O₃-column and
+    <code>JVALS</code> interpolates — four evaluations per advection step,
+    with <code>DJCALC</code> interpolating within each 300 s chemistry
+    substep.<sup class="cite"><a href="references.html#collins1997">[1]</a></sup>
+    The day/night asymmetry this produces is what drives the diurnal cycle
+    shown on the chemistry page.
+  </p>
+
+  <h2>7. Sources and sinks</h2>
+  <p>
+    Emissions appear as inhomogeneous terms: a cell emitting E molecules per
+    step adds <code>E/N_c</code> to each of its N_c parcels
+    (<code>EGET</code>) — mass-preserving by construction. Sinks are folded
+    into the loss operator L:
+  </p>
+  <div class="eq">dry deposition: L_dry = v_d / H_BL &nbsp;&nbsp;·&nbsp;&nbsp; wet scavenging: L_wet = Λ(P)</div>
+  <p>
+    — a boundary-layer ventilation timescale for the first, a
+    precipitation-dependent scavenging coefficient for the second
+    (<code>DDCALC</code>, <code>DWCALC</code>).
+  </p>
+
+  <h2>8. Operator splitting</h2>
+  <p>
+    The full step is a composition of single-physics maps —
+  </p>
+  <div class="eq">cⁿ⁺¹ = S_dep ∘ S_chem ∘ S_mix ∘ S_adv cⁿ</div>
+  <p>
+    a first-order (Lie) splitting with O(Δt) splitting error. Each factor is
+    cheap or exact in its own frame — advection is the trajectory integral,
+    chemistry the implicit iteration above, mixing the Bernoulli draw — and
+    the small splitting error is the accepted price for never having to
+    solve one coupled monster system.<sup class="cite"><a href="references.html#collins1997">[1]</a></sup>
+  </p>
+
+  <h2>9. Output: the census is a Poisson process</h2>
+  <p>
+    A grid-cell mean is a sample mean over whatever parcels happen to be in
+    the cell: <code>c̄_cell = (1/N_c) Σ cᵢ</code>. If parcels were Poisson
+    distributed, N_c ~ Poisson(μ) gives count noise
+  </p>
+  <div class="eq">σ/μ = 1/√μ</div>
+  <p>
+    With 50,048 parcels over 23,328 cells, μ ≈ 2.1 — so even a
+    perfectly-mixed field carries ~70% cell-to-cell sampling noise before any
+    chemistry. This is why burdens and zonal means (which average many cells)
+    are well-converged while single-cell fields are not — try it live in the
+    <a href="visualisations.html">census demo</a>.
+  </p>
+
+  <h2>10. Putting it together</h2>
+  <div class="panel">
+    <p>
+      One advection step of STOCHEM is: integrate the characteristic ODE by
+      RK4 (§2), apply the diffusion SDE kick (§3), inject source terms and
+      first-order sinks (§7), advance the stiff chemistry by 8×-iterated
+      quasi-analytic substeps (§5) with interpolated photolysis (§6),
+      Bernoulli-homogenise cloudy columns (§4), then bin the ensemble into
+      Eulerian cell means (§9). Repeat 8 times a day, ~3,000 times a year.
+    </p>
+  </div>
+</main>
+
+<footer class="site">
+  STOCHEM-CRI explainer — mathematics. Equations describe the documented
+  schemes in Collins et al. (1997)<sup class="cite"><a href="references.html#collins1997">[1]</a></sup>,
+  Stevenson et al. (1998)<sup class="cite"><a href="references.html#stevenson1998">[2]</a></sup>
+  and the current <code>Base.for</code> implementation.
+</footer>
+</body>
+</html>

@@ -8,6 +8,8 @@ chemistry–transport model works, deployed to GitHub Pages via Actions.
 ```
 index.html  model.html  chemistry.html  visualisations.html  references.html
 code.html                   — annotated Base.for subroutine tour (real line refs)
+maths.html                  — mathematical formulation (characteristics, RK4,
+                              Ito diffusion, CLMIX Bernoulli, stiff ODE solver)
 slides.html                 — self-contained slide deck (keyboard nav, hash
                               routing, print-to-PDF via @media print)
 assets/css/style.css        — the only stylesheet; reuse its classes
