@@ -7,6 +7,8 @@ chemistry–transport model works, deployed to GitHub Pages via Actions.
 
 ```
 index.html  model.html  chemistry.html  visualisations.html  references.html
+slides.html                 — self-contained slide deck (keyboard nav, hash
+                              routing, print-to-PDF via @media print)
 assets/css/style.css        — the only stylesheet; reuse its classes
 assets/js/parcels.js        — interactive parcel advection schematic (canvas)
 assets/js/chemistry.js      — interactive reaction-network explorer (SVG)

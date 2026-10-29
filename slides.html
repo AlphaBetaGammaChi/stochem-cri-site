@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slides — How STOCHEM-CRI works</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+  body.deck-mode { overflow: hidden; }
+  .deck { position: fixed; inset: 0; background: var(--bg); }
+  .slide {
+    position: absolute; inset: 0;
+    display: none; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 5vh 7vw; text-align: center;
+  }
+  .slide.active { display: flex; }
+  .slide h1 { font-size: 2.6rem; margin: 0 0 1rem; }
+  .slide h2 { font-size: 1.9rem; margin: 0 0 1.2rem; border: none; padding: 0; }
+  .slide p, .slide li { font-size: 1.15rem; max-width: 52em; }
+  .slide ul { text-align: left; display: inline-block; }
+  .slide .lede { color: var(--text-dim); font-size: 1.3rem; }
+  .slide img { max-width: min(72vw, 900px); max-height: 52vh; border-radius: 8px;
+    background: var(--bg-inset); }
+  .slide .cards { width: min(80vw, 1000px); }
+  .slide .cards .card { text-align: center; }
+  .slide .eq { font-size: 1.5rem; font-family: ui-monospace, Menlo, monospace;
+    background: var(--code-bg); border-radius: 10px; padding: 0.8rem 1.6rem;
+    margin: 0.8rem 0; }
+  .slide .two-col { width: min(82vw, 1050px); }
+  .slide .flow .step { font-size: 0.85rem; }
+  .progress { position: fixed; top: 0; left: 0; height: 3px;
+    background: var(--accent2); width: 0; z-index: 30; transition: width .2s; }
+  .snum { position: fixed; bottom: 14px; right: 20px; color: var(--text-dim);
+    font-size: 0.85rem; z-index: 30; }
+  .hint { position: fixed; bottom: 14px; left: 20px; color: var(--text-dim);
+    font-size: 0.8rem; z-index: 30; }
+  .navbtns { position: fixed; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 30; display: flex; gap: 0.5rem; }
+  .cap { color: var(--text-dim); font-size: 0.85rem; max-width: 60em;
+    margin-top: 0.6rem; }
+  .accent { color: var(--accent2); }
+  a.backlink { position: fixed; top: 14px; left: 18px; z-index: 30;
+    color: var(--text-dim); font-size: 0.85rem; }
+  @media print {
+    body.deck-mode { overflow: visible; }
+    .deck { position: static; }
+    .slide { display: flex !important; position: relative;
+      page-break-after: always; min-height: 90vh; }
+    .progress, .snum, .hint, .navbtns, .backlink { display: none; }
+  }
+</style>
+</head>
+<body class="deck-mode">
+<div class="progress" id="prog"></div>
+<a class="backlink" href="index.html">← back to site</a>
+<div class="hint">← → / space to navigate · Home/End jump · P print/PDF</div>
+<div class="snum" id="snum"></div>
+<div class="navbtns">
+  <button class="btn" id="prev">‹ prev</button>
+  <button class="btn" id="next">next ›</button>
+</div>
+
+<div class="deck">
+
+<section class="slide">
+  <h1>How <span class="accent">STOCHEM-CRI</span> works</h1>
+  <p class="lede">A global three-dimensional <b>Lagrangian</b> tropospheric
+  chemistry–transport model</p>
+  <p class="cap">Met Office (Bracknell) · University of Bristol CRI mechanism ·
+  Collins, Stevenson, Johnson &amp; Derwent (1997), <i>J. Atmos. Chem.</i> 26</p>
+</section>
+
+<section class="slide">
+  <h2>The model in one sentence</h2>
+  <p>Follow <b>~50,000 individual air parcels</b> as the analysed winds blow
+  them around the troposphere — and integrate a detailed chemical mechanism
+  inside every single one.</p>
+  <div class="cards">
+    <div class="card"><div class="big">50,048</div><div class="lbl">air parcels</div></div>
+    <div class="card"><div class="big">241</div><div class="lbl">species</div></div>
+    <div class="card"><div class="big">~700</div><div class="lbl">reactions</div></div>
+    <div class="card"><div class="big">72×36×9</div><div class="lbl">output grid</div></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Eulerian vs Lagrangian</h2>
+  <img src="assets/img/lagrangian_vs_eulerian_montage.png" alt="Eulerian vs Lagrangian schematic">
+  <p class="cap"><b>Eulerian:</b> fixed boxes, flux divergences, numerical
+  diffusion. <b>Lagrangian:</b> parcels ride the wind — advection is exact.</p>
+</section>
+
+<section class="slide">
+  <h2>Why it works: the material derivative</h2>
+  <div class="eq">Eulerian: ∂c/∂t = −u·∇c + S</div>
+  <div class="eq">Lagrangian: <span class="accent">Dc/Dt = S</span></div>
+  <ul>
+    <li>The <code>u·∇c</code> term — the hard part — vanishes: the parcel <i>is</i> the advection</li>
+    <li>No numerical diffusion, no negative mixing ratios, sharp plumes stay sharp</li>
+    <li>All that remains is sources &amp; sinks: emissions, chemistry, deposition</li>
+    <li>Price: real turbulent mixing must be added back — <b>stochastically</b></li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>One timestep, end to end</h2>
+  <div class="flow" style="width:min(85vw,1100px)">
+    <div class="step"><b>Advect</b>3-hourly analysed winds</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Mix</b>stochastic exchange + BL + convection</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Emit</b>surface + aircraft + lightning NO<sub>x</sub></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Chemistry</b>stiff solver, ~700 reactions per parcel</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Deposit</b>dry + wet removal</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Remap</b>bin to 72×36×9 grid</div>
+  </div>
+  <img src="assets/img/stochem_cycle.gif" alt="STOCHEM timestep cycle" style="max-height:34vh">
+</section>
+
+<section class="slide">
+  <h2>Stochastic mixing — the "STO"</h2>
+  <ul>
+    <li>Pure advection never mixes neighbouring air masses</li>
+    <li>STOCHEM emulates sub-grid diffusion by <b>randomly exchanging parcels
+        within each grid cell</b></li>
+    <li>Every cell's mean is therefore a statistical quantity — runs are
+        ensemble members, not bit-identical answers</li>
+    <li>Validated against <sup>222</sup>Rn (Stevenson et al. 1998); convection
+        via GCM mass fluxes (Collins et al. 2002)</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Emissions &amp; deposition</h2>
+  <div class="two-col">
+    <div class="panel">
+      <h3>Sources</h3>
+      <ul>
+        <li>Surface: anthropogenic, biomass burning, biogenic, ocean, soils → BL cells</li>
+        <li>Aircraft NO<sub>x</sub> &amp; lightning NO<sub>x</sub>: altitude-resolved 3-D fields (<code>ACNOX</code>, <code>LNOX</code>)</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Sinks</h3>
+      <ul>
+        <li>Dry deposition: species/surface-dependent velocities, lowest layer</li>
+        <li>Wet deposition: large-scale + convective scavenging</li>
+        <li>Both written as fluxes: <code>.bud</code> / <code>.tot</code></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Chemistry: the CRI mechanism</h2>
+  <p>CRI = <b>Common Representative Intermediates</b> — a systematically
+  reduced VOC scheme benchmarked against the MCM</p>
+  <div class="cards">
+    <div class="card"><div class="big">~13,000</div><div class="lbl">MCM species</div></div>
+    <div class="card"><div class="big">→</div><div class="lbl">lumped by # reactive C–C/C–H bonds</div></div>
+    <div class="card"><div class="big">~200</div><div class="lbl">CRI v2-R5 species</div></div>
+  </div>
+  <p class="cap">RN·O₂ (alkane) · RU·O₂ (unsaturated) · RA·O₂ (aromatic) ·
+  RTX·O₂ (terpene) → CARB/UCARB/UDCARB carbonyls → O₃, PAN, SOA, CO₂<br>
+  Jenkin, Watson, Utembe &amp; Shallcross (2008–2010), <i>Atmos. Environ.</i></p>
+</section>
+
+<section class="slide">
+  <h2>The ozone-producing steps</h2>
+  <div style="display:flex; gap:2rem; justify-content:center; flex-wrap:wrap">
+    <img src="assets/img/ho2_no.gif" alt="HO2 + NO" style="max-height:38vh; max-width:44vw">
+    <img src="assets/img/ch3o2_no.gif" alt="CH3O2 + NO" style="max-height:38vh; max-width:44vw">
+  </div>
+  <p class="cap">HO₂ + NO → OH + NO₂ · CH₃O₂ + NO → CH₃O + NO₂ — peroxy radicals
+  convert NO→NO₂; NO₂ photolysis makes O₃. JPL-evaluated rates.</p>
+</section>
+
+<section class="slide">
+  <h2>Nitrogen reservoirs &amp; transport</h2>
+  <ul>
+    <li><b>PAN</b> (acyl peroxy nitrates): cold-temperature NO<sub>x</sub>
+        storage; long-range pollution transport (Khan et al. 2017)</li>
+    <li><b>RO₂NO₂</b> (non-acyl peroxy nitrates, 45 species): stable only in the
+        cold upper troposphere — raises O₃, OH, NO₃ burdens (Khan et al. 2020)</li>
+    <li><b>HNO₃</b>: terminal sink via OH+NO₂, removed by deposition</li>
+  </ul>
+  <img src="assets/img/ch3o2_no2.gif" alt="CH3O2NO2 formation" style="max-height:30vh">
+</section>
+
+<section class="slide">
+  <h2>Real model output</h2>
+  <div style="display:flex; gap:2rem; justify-content:center; flex-wrap:wrap">
+    <img src="assets/img/stochem_h2_map.gif" alt="Surface H2" style="max-height:42vh; max-width:44vw">
+    <img src="assets/img/stochem_o3_zonal.gif" alt="Zonal O3" style="max-height:42vh; max-width:44vw">
+  </div>
+  <p class="cap">Monthly surface H₂ and zonal-mean O₃ from real
+  <code>stoch3d.dat</code> output.</p>
+</section>
+
+<section class="slide">
+  <h2>What STOCHEM has been used for</h2>
+  <ul>
+    <li>Tropospheric O₃ budgets &amp; NO<sub>x</sub> controls (Collins 1997)</li>
+    <li>Aircraft NO<sub>x</sub> impacts (Stevenson 1997)</li>
+    <li>Indirect GWPs of VOCs (Derwent 2001, Collins 2002)</li>
+    <li>Global H₂ budgets &amp; the hydrogen economy (Sanderson 2003 → Derwent 2025)</li>
+    <li>CRI-era: PAN, acetone, alkyl nitrates, NO₃, RO₂·H₂O, RO₂NO₂, SOA (Utembe &amp; Khan 2010–2020)</li>
+  </ul>
+  <p class="cap">23-paper bibliography, 1997–2025, on the references page</p>
+</section>
+
+<section class="slide">
+  <h2>Strengths &amp; honest caveats</h2>
+  <div class="two-col">
+    <div class="panel"><h3 class="accent">Strengths</h3>
+      <ul><li>Exact advection, mass-conserving parcels</li>
+      <li>Detailed CRI chemistry at global scale</li>
+      <li>Parcel histories ideal for plume/attribution studies</li>
+      <li>Trivially parallel (OpenMP)</li></ul></div>
+    <div class="panel"><h3>Caveats</h3>
+      <ul><li>Stochastic sampling noise in sparse cells</li>
+      <li>Coarse analysis grid vs modern Eulerian CTMs</li>
+      <li>Aged meteorological drivers (offline model)</li>
+      <li>Spin-up needed from climatological cold start</li></ul></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Learn more</h2>
+  <p class="lede">Interactive schematics, mechanism explorer, full
+  bibliography:</p>
+  <p><a href="index.html">the STOCHEM-CRI explainer site</a> — model ·
+  chemistry · visualisations · references</p>
+  <p class="cap">All interactive figures are labelled schematics; GIFs are
+  rendered from real model code/output or explicit reaction specs.</p>
+</section>
+
+</div>
+
+<script>
+(function () {
+  var slides = document.querySelectorAll('.slide');
+  var n = slides.length, cur = 0;
+  var prog = document.getElementById('prog');
+  var snum = document.getElementById('snum');
+  function show(i, push) {
+    cur = Math.max(0, Math.min(n - 1, i));
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === cur); });
+    prog.style.width = (100 * (cur + 1) / n) + '%';
+    snum.textContent = (cur + 1) + ' / ' + n;
+    if (push !== false) history.replaceState(null, '', '#' + (cur + 1));
+  }
+  function next() { show(cur + 1); }
+  function prev() { show(cur - 1); }
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(n - 1);
+    else if (e.key === 'p' || e.key === 'P') window.print();
+  });
+  document.querySelector('.deck').addEventListener('click', function (e) {
+    if (e.target.closest('a,button')) return;
+    if (e.clientX > window.innerWidth * 0.6) next(); else prev();
+  });
+  var h = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(h) ? 0 : h - 1, false);
+})();
+</script>
+</body>
+</html>
