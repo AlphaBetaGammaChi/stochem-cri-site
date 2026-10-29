@@ -15,6 +15,7 @@
     <a class="navlink" href="model.html">The model</a>
     <a class="navlink" href="chemistry.html">The chemistry</a>
     <a class="navlink" href="visualisations.html">Visualisations</a>
+    <a class="navlink" href="code.html">Code tour</a>
     <a class="navlink" href="slides.html">Slides</a>
     <a class="navlink" href="references.html">References</a>
   </nav>
@@ -118,10 +119,27 @@
     <li>Emission-scenario studies — including hydrogen- and alternative-fuel aviation perturbations — run on HPC clusters such as Blue Pebble.</li>
   </ul>
 
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <dt>Air parcel</dt><dd>A constant-mass Lagrangian control volume that carries the full vector of chemical species and moves with the analysed wind.</dd>
+    <dt>Eulerian grid</dt><dd>The fixed mesh where meteorology lives and onto which parcels are binned for mixing, emissions and output (72 × 36 × 9).</dd>
+    <dt>Material derivative</dt><dd><code>Dc/Dt = ∂c/∂t + u·∇c</code> — the rate of change following a moving parcel; advection vanishes in this frame.</dd>
+    <dt>Operator splitting</dt><dd>Treating advection, mixing, emissions, chemistry and deposition as separate sequential steps rather than one coupled solve.</dd>
+    <dt>Eta (η) coordinate</dt><dd>The terrain-following pressure-like vertical coordinate parcels are positioned in (η ≈ 1 at the surface, → 0 aloft).</dd>
+    <dt>CRI</dt><dd>Common Representative Intermediates — a reduced VOC-oxidation mechanism that lumps MCM intermediates by their C–C/C–H bond counts.</dd>
+    <dt>MCM</dt><dd>Master Chemical Mechanism — the near-explicit reference mechanism (~13,000 species/reactions) CRI is systematically reduced from.</dd>
+    <dt>Photolysis rate (J)</dt><dd>First-order loss rate of a molecule by sunlight absorption; recomputed as the sun moves, switching chemistry between day and night.</dd>
+    <dt>NOₓ / HOₓ / RO₂</dt><dd>Radical families: NO + NO₂; OH + HO₂; organic peroxy radicals — the intermediates that couple VOC oxidation to O₃ production.</dd>
+    <dt>PAN</dt><dd>Peroxyacetyl nitrate — a thermally-unstable reservoir that stores NOₓ in cold air and releases it on descent, moving pollution intercontinentally.</dd>
+    <dt>Deposition velocity</dt><dd>Surface loss rate expressed as a speed (cm s⁻¹); multiplied by surface concentration to give the dry-deposition flux.</dd>
+    <dt>Spin-up / restart</dt><dd>The equilibration period after a climatological cold start; <code>DUMP.BIN</code>/<code>RESTART.BIN</code> allow warm-start continuation.</dd>
+  </dl>
+
   <h2>Explore</h2>
   <div class="cards">
     <a class="card" href="model.html"><b>The model</b><div class="lbl">Lagrangian vs Eulerian, the grid, operator splitting, stochastic mixing, restarts, outputs</div></a>
     <a class="card" href="chemistry.html"><b>The chemistry</b><div class="lbl">How CRI reduces the MCM, photolysis, emissions, deposition, RO2NO2 and SOA extensions</div></a>
+    <a class="card" href="code.html"><b>Code tour</b><div class="lbl">Annotated walkthrough of Base.for — where advection, chemistry, mixing and emissions live in the Fortran</div></a>
     <a class="card" href="visualisations.html"><b>Visualisations</b><div class="lbl">Interactive parcel advection, the HOx/NOx/O3 cycle explorer, and a zonal-mean field viewer</div></a>
     <a class="card" href="references.html"><b>References</b><div class="lbl">Full citation list with DOIs for every claim on this site</div></a>
     <a class="card" href="slides.html"><b>Slides</b><div class="lbl">A keyboard-navigable 14-slide deck summarising the whole site — print to PDF for talks</div></a>

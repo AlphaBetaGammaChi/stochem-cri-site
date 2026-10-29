@@ -14,6 +14,7 @@
     <a class="navlink" href="model.html">The model</a>
     <a class="navlink" href="chemistry.html">The chemistry</a>
     <a class="navlink active" href="visualisations.html">Visualisations</a>
+    <a class="navlink" href="code.html">Code tour</a>
     <a class="navlink" href="slides.html">Slides</a>
     <a class="navlink" href="references.html">References</a>
   </nav>
@@ -114,6 +115,38 @@
     </figcaption>
   </figure>
 
+  <h2>4. Why 50,000 parcels — the census problem</h2>
+  <p>
+    STOCHEM writes its fields by counting parcels per Eulerian cell — a census.
+    With ~50,000 parcels over 23,328 cells the mean is only ~2 parcels per cell,
+    so cell means fluctuate roughly as Poisson counting noise
+    (<code>σ/μ ≈ 1/√μ</code>). Add parcels and the noise falls as √N; refine the
+    grid and it rises. Watch the live cell counts against the Poisson
+    prediction, and why empty cells cluster where the flow diverges.
+  </p>
+  <div class="controls">
+    <label>Parcels <input type="range" id="cen-n" min="200" max="3000" step="50" value="900">
+    <span id="cen-n-lbl">900</span></label>
+    <label>Grid
+      <select id="cen-grid">
+        <option value="8x5">8 × 5</option>
+        <option value="12x8" selected>12 × 8</option>
+        <option value="18x12">18 × 12</option>
+      </select>
+    </label>
+    <span id="cen-stat"></span>
+  </div>
+  <figure class="viz">
+    <canvas id="census-canvas" width="960" height="460"></canvas>
+    <figcaption>
+      Schematic: parcels (grey dots) advect through a stylised flow. Cell
+      shading shows over/under-population relative to the mean; the histogram
+      (right) compares the instantaneous count distribution with the Poisson
+      pmf (amber). This is the sampling noise behind the tip at the bottom of
+      the model page.
+    </figcaption>
+  </figure>
+
   <h2>Rendered from the model</h2>
   <p>
     These animations were produced from the STOCHEM Fortran code's own output
@@ -170,5 +203,6 @@
 <script src="assets/js/parcels.js"></script>
 <script src="assets/js/chemistry.js"></script>
 <script src="assets/js/grid.js"></script>
+<script src="assets/js/census.js"></script>
 </body>
 </html>

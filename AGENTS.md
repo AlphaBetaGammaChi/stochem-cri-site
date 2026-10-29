@@ -7,12 +7,18 @@ chemistry–transport model works, deployed to GitHub Pages via Actions.
 
 ```
 index.html  model.html  chemistry.html  visualisations.html  references.html
+code.html                   — annotated Base.for subroutine tour (real line refs)
 slides.html                 — self-contained slide deck (keyboard nav, hash
                               routing, print-to-PDF via @media print)
 assets/css/style.css        — the only stylesheet; reuse its classes
 assets/js/parcels.js        — interactive parcel advection schematic (canvas)
 assets/js/chemistry.js      — interactive reaction-network explorer (SVG)
 assets/js/grid.js           — interactive zonal-mean schematic (canvas)
+assets/js/cri.js            — CRI lumping cascade animation (canvas)
+assets/js/parcel_day.js     — one-parcel diurnal chemistry chart (canvas)
+assets/js/traj.js           — follow-one-parcel trajectory animation (canvas)
+assets/js/convection.js     — CLMIX cloud-entrainment schematic (canvas)
+assets/js/census.js         — parcel-per-cell census / Poisson demo (canvas)
 assets/img/                 — GIF/PNG renders copied from Trading/stochem_anims
                               and Trading/reaction_anims
 .github/workflows/pages.yml — Pages deploy (upload-pages-artifact → deploy-pages)

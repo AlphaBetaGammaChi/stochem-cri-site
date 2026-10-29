@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code tour — STOCHEM-CRI explainer</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<header class="site">
+  <nav class="site">
+    <a class="brand" href="index.html">STOCHEM<span class="sub">-CRI</span></a>
+    <a class="navlink" href="index.html">Overview</a>
+    <a class="navlink" href="model.html">The model</a>
+    <a class="navlink" href="chemistry.html">The chemistry</a>
+    <a class="navlink" href="visualisations.html">Visualisations</a>
+    <a class="navlink active" href="code.html">Code tour</a>
+    <a class="navlink" href="slides.html">Slides</a>
+    <a class="navlink" href="references.html">References</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>Inside <code>Base.for</code></h1>
+    <p class="lede">
+      STOCHEM is a single fixed-form Fortran 77 program of ~13,300 lines, plus
+      an <code>INCLUDE</code> file (<code>INOPERVM10.SOA2</code>) holding the
+      grid dimensions, species list and file paths. Everything on the model
+      page — advection, mixing, chemistry, emissions — maps onto named
+      subroutines. Line numbers below refer to the current build.
+    </p>
+  </section>
+
+  <h2>One timestep through the code</h2>
+  <p>
+    The main program (<code>PROGRAM STOCHEM</code>, line 2) runs an outer loop
+    over 3-hourly advection steps (<code>ASTEP=10800</code>, line 370). Each
+    pass reads met, loops over all 50,048 parcels, then does cell-level
+    book-keeping:
+  </p>
+  <div class="flow">
+    <div class="step"><b>READPP2 / METREA2</b>read 6-hourly winds, T, q, cloud, BL depth</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>RKO4 + VELOC</b>RK4 advection + stochastic diffusion per parcel</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>JVALS + DJCALC</b>photolysis rates at 4 points in the step</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>EGET / DDCALC / DWCALC</b>emissions, dry &amp; wet deposition</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>DERIV + CHEMCO</b>CRI chemistry — the expensive call</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>STORE / PLOT / CLMIX</b>emission buffers, Eulerian remap, cloud mixing</div>
+  </div>
+
+  <h2>Where everything lives</h2>
+  <table class="ref">
+    <tr><th>Phase</th><th>Subroutine (line)</th><th>What it does</th></tr>
+    <tr><td>Setup</td>
+        <td><code>GETLIS</code> (11517) · <code>INIGRI</code> (1866) · <code>INIPOS</code> (1912) · <code>AINDEX</code> (11460)</td>
+        <td>Reads the flux/species lists, builds the two met grids, seeds 50,048 parcels on the eta grid and indexes each to its analysis cell.</td></tr>
+    <tr><td>Initial state</td>
+        <td><code>INICON</code> (1610) · <code>RESTART</code></td>
+        <td>Cold start from a zonally-symmetric July climatology, or warm start restoring the full parcel state from <code>RESTART.BIN</code>.</td></tr>
+    <tr><td>Meteorology</td>
+        <td><code>READPP2</code> (872) · <code>METREA2</code> (1220) · <code>WATREA2</code> (1450) · <code>CLRAIN2</code> (1306) · <code>BLREAD2</code> (1381) · <code>BOUND</code> (~15096)</td>
+        <td>Ingests winds, temperature, humidity, cloud base/top/cover and precipitation; diagnoses boundary-layer depth by two methods and keeps the deeper.</td></tr>
+    <tr><td>Advection</td>
+        <td><code>RKO4</code> (2231) · <code>VELOC</code> (2500) · <code>INTERP</code> · <code>REPOS</code> (2437)</td>
+        <td>4th-order Runge–Kutta along the interpolated 3-D wind, with careful pole handling. <code>VELOC</code> adds the stochastic diffusion kick.</td></tr>
+    <tr><td>Chemistry</td>
+        <td><code>JVALS</code> (11919) · <code>PHOT</code> (12079) · <code>DJCALC</code> (2694) · <code>DERIV</code> (2733) · <code>CHEMCO</code> (7776) · <code>EQMCON</code> (9813)</td>
+        <td>Photolysis-rate table (~1,000-line <code>PHOT</code> block), then <code>DERIV</code> — a ~5,000-line right-hand-side for all ~700 CRI reactions — with rate constants set in <code>CHEMCO</code>.</td></tr>
+    <tr><td>Emissions</td>
+        <td><code>EMREAD</code> (10438) · <code>EMCALC</code> (10617) · <code>EMUPDT</code> (11128) · <code>EGET</code> (2607) · <code>STORE</code> (11061) · <code>LIGHTREAD</code> · <code>STRATCALC</code></td>
+        <td>Monthly surface/aircraft/lightning inventories (<code>DONO2</code> gates <code>ACNOXmm.OUT</code>/<code>LNOXmm.OUT</code>), injected into whatever parcels sit in the emitting cell.</td></tr>
+    <tr><td>Deposition</td>
+        <td><code>DDCALC</code> (11003) · <code>DWCALC</code> (10834)</td>
+        <td>Land/sea dry-deposition velocities; scavenging by dynamic (<code>ADP</code>) and convective (<code>ACP</code>) rain.</td></tr>
+    <tr><td>Mixing</td>
+        <td><code>VELOC</code> (2500) · <code>CLMIX</code> (14994)</td>
+        <td>Continuous stochastic diffusion via random wind kicks, plus the convective cloud-column homogenisation shown below.</td></tr>
+    <tr><td>Output</td>
+        <td><code>PLOT</code> (9863) · <code>SMOOTH</code> (9944) · <code>MCALC</code> (10027) · <code>STATS</code>/<code>CALSTA</code>/<code>OUTSTA</code> · <code>OUTBUD</code> (10157) · <code>OUTLEV</code> (10110)</td>
+        <td>Bins parcels onto the 72×36×9 grid, writes <code>stoch3d.dat/.bud/.tot/.sta</code>, and periodically dumps <code>DUMP.BIN</code> for restarts.</td></tr>
+    <tr><td>Diagnostics</td>
+        <td><code>CELLBAL</code> (11643) · <code>INITBAL</code> (11827) · <code>ZEROFL</code> (11421)</td>
+        <td>Optional single-cell NO<sub>x</sub>/O<sub>3</sub> budget tracking — a parcel is followed and every flux in/out of its cell is logged.</td></tr>
+  </table>
+
+  <h2>The stochastic bit, verbatim</h2>
+  <p>
+    This is the actual entrainment decision in <code>CLMIX</code> — the loop the
+    <a href="model.html">convection schematic</a> illustrates. <code>FRAC</code>
+    is derived from convective precipitation (or 4× cloud cover for non-raining
+    cloud); every entrained parcel is then overwritten with the cell's
+    cloudy-mean composition:
+  </p>
+  <pre><code>          R=RANDNUM(SEED3)
+          IF(R.LT.FRAC(I,J)) THEN
+            LCLOUD(K)=.TRUE.
+            II=INT((I-1)*DLONGM/DLONG)+1
+            JJ=INT((J-1)*DLATM/DLAT)+1
+            NCLOUD(II,JJ)=NCLOUD(II,JJ)+1
+            DO N=1,NC
+              CLCONC(N,II,JJ)=CLCONC(N,II,JJ)+XX(N,K)
+            ENDDO
+          ENDIF</code></pre>
+  <p>
+    And the continuous turbulent diffusion in <code>VELOC</code> — a Gaussian
+    kick <code>S·√(2K/Δt)</code> added to the analysed wind
+    (<code>HDIFF=5300</code> m² s⁻¹ horizontally, <code>VDIFF=7×10⁻⁹</code>
+    vertically, switched off near the poles):
+  </p>
+  <pre><code>        V(1)=(U7+S(1)*(2.0*(1.0/ASTEP)*HDIFF)**0.5)*
+     &amp;                DPMY/COS((POS(2)-90.0)*RAD)
+        V(2)=-(V7+S(2)*(2.0*(1.0/ASTEP)*HDIFF)**0.5)*DPMY
+        V(3)=W7+S(3)*(2.0*(1.0/ASTEP)*VDIFF)**0.5</code></pre>
+
+  <h2>So you want to change something</h2>
+  <div class="two-col">
+    <div class="panel">
+      <h3>Add a species</h3>
+      <p>
+        Positional bookkeeping: bump <code>NC</code>, add to
+        <code>CNAMES</code>/<code>CLIST</code>, seed it in
+        <code>INICON</code>, add production/loss terms in
+        <code>DERIV</code>, give it an emissions channel
+        (<code>EMREAD</code>→<code>EGET</code>) and deposition velocities.
+        The index order is the mechanism-file order — misalign it and every
+        downstream flux is silently wrong.
+      </p>
+    </div>
+    <div class="panel">
+      <h3>Add a reaction</h3>
+      <p>
+        One row in <code>CHEMCO</code>'s <code>RC(JB,n)</code> table, bump
+        <code>NR</code>, then the production/loss terms in
+        <code>DERIV</code>. To output its flux, flag it in
+        <code>flux10_OH.dat</code> (and make sure
+        <code>NUM3DFLUX</code> in the include file is large enough).
+      </p>
+    </div>
+  </div>
+  <div class="panel">
+    <h3><code>Base_omp.for</code> — the OpenMP build</h3>
+    <p>
+      The parcel loop is the parallel region: parcels are processed in blocks
+      (the <code>nblock</code>/<code>JA</code> loop ending at line ~632), with
+      per-thread <code>PRIVATE</code> state for concentrations and
+      <code>LASTPRIVATE</code>/<code>ATOMIC</code> handling for shared
+      diagnostics like the SOA pools and accumulated fluxes. Serial runs take
+      ~45 h per model year; the OpenMP build brings that to ~3–8 h on 24
+      threads.
+    </p>
+  </div>
+
+  <div class="tip">
+    Line numbers refer to the current <code>Base.for</code> build and will
+    drift as the file is edited — grep for the subroutine name rather than
+    trusting the number. The runtime contract is simple: four stdin answers
+    (year, month, day, run length in days); a <code>RESTART.BIN</code> present
+    in the run directory means a warm start and the typed date is ignored.
+  </div>
+</main>
+
+<footer class="site">
+  STOCHEM-CRI explainer — code tour. Routine names, line numbers and code
+  excerpts are from the current <code>Base.for</code> build; scientific
+  behaviour follows Collins et al. (1997)<sup class="cite"><a href="references.html#collins1997">[1]</a></sup>
+  and Collins et al. (2002)<sup class="cite"><a href="references.html#collins2002">[10]</a></sup>.
+</footer>
+</body>
+</html>

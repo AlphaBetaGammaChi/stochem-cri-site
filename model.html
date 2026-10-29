@@ -14,6 +14,7 @@
     <a class="navlink active" href="model.html">The model</a>
     <a class="navlink" href="chemistry.html">The chemistry</a>
     <a class="navlink" href="visualisations.html">Visualisations</a>
+    <a class="navlink" href="code.html">Code tour</a>
     <a class="navlink" href="slides.html">Slides</a>
     <a class="navlink" href="references.html">References</a>
   </nav>
@@ -164,6 +165,34 @@
     convective scheme.
   </p>
 
+  <h3>Inside the convection scheme</h3>
+  <div class="schematic">
+    Schematic: in the code's <code>CLMIX</code> routine every parcel below
+    cloud top draws a random number each timestep; if it falls below a
+    convective fraction <code>FRAC</code> (diagnosed from precipitation rate
+    or cloud cover), the parcel joins the cloud pool and all entrained parcels
+    in the cell are set to their <b>mean</b> concentration — instant
+    homogenisation of the cloudy column. Use the slider to change
+    <code>FRAC</code>: the left column never mixes, the right column does.
+  </div>
+  <div class="controls">
+    <button class="btn" id="c-play">Pause</button>
+    <label>FRAC <input type="range" id="c-frac" min="0" max="0.8" step="0.05" value="0.35">
+    <span id="c-frac-lbl">0.35</span></label>
+    <span id="c-stat"></span>
+  </div>
+  <figure class="viz">
+    <canvas id="conv-canvas" width="960" height="460"></canvas>
+    <figcaption>
+      Schematic of the convective-mixing rule in <code>CLMIX</code>: parcels are
+      coloured by tracer (blue clean → red polluted, initially a surface-source
+      profile). White rings mark parcels entrained on the last event — note how
+      their colours snap to the group mean while positions do not move. The
+      real scheme mixes species identically to the tracer shown.
+      <sup class="cite"><a href="references.html#collins2002">[10]</a></sup>
+    </figcaption>
+  </figure>
+
   <h2>Emissions and deposition</h2>
   <div class="two-col">
     <div class="panel">
@@ -229,5 +258,6 @@
   details such as grid dimensions describe the current STOCHEM-CRI build.
 </footer>
 <script src="assets/js/traj.js"></script>
+<script src="assets/js/convection.js"></script>
 </body>
 </html>
