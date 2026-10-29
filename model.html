@@ -47,6 +47,70 @@
     deposition, never through transport error.
   </p>
 
+  <h2>How a Lagrangian model works, mathematically</h2>
+  <p>
+    In the <b>Eulerian</b> view we sit at fixed points <b>x</b> and watch air
+    flow past: the local concentration changes as
+    <code>∂c/∂t = −u·∇c + S</code>, and the <code>u·∇c</code> advection term
+    has to be discretised — which is where numerical diffusion and spurious
+    negative concentrations come from. In the <b>Lagrangian</b> view we ride
+    along with a parcel and ask only how its concentration changes in time:
+    the <b>material derivative</b> <code>Dc/Dt = ∂c/∂t + u·∇c = S</code>.
+    Advection disappears from the equation entirely — the parcel <i>is</i> the
+    advection — so all that remains is the source/sink term
+    <code>S</code>: emissions, chemistry, deposition. That is why STOCHEM can
+    carry sharp plumes across an ocean without smearing them.
+  </p>
+  <p>
+    The price is that the <code>−u·∇c</code> term also encoded real mixing:
+    neighbouring air parcels genuinely exchange material by turbulence. With
+    parcels only following the resolved wind, that exchange must be added back
+    artificially — STOCHEM does it stochastically, randomly reassigning parcels
+    within each grid cell, which is where the model gets its name and why a
+    cell's mean is a statistical quantity.
+  </p>
+  <div class="two-col">
+    <div class="panel">
+      <h3>Lagrangian wins</h3>
+      <ul>
+        <li>Advection is exact — no numerical diffusion, no negative mixing ratios</li>
+        <li>Chemistry integrates once per parcel — embarrassingly parallel (OpenMP)</li>
+        <li>Each parcel keeps an emission/trajectory history — great for plume &amp; attribution studies</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Eulerian wins</h3>
+      <ul>
+        <li>Mixing is built into the transport scheme, not added stochastically</li>
+        <li>Uniform grid — no empty cells or sampling noise where parcels are sparse</li>
+        <li>Continuous fields — parcel binning must be remapped for output anyway</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Follow one parcel</h3>
+  <div class="schematic">
+    Schematic: one of STOCHEM's 50,048 parcels (green dot) rides the same
+    stylised wind field as the multi-parcel demo, leaving a fading trail. Its
+    tracer mixing ratio (sparkline, bottom left) rises when it drifts through
+    the European source region and decays by first-order loss afterward — the
+    material derivative <code>Dc/Dt = S</code> in action.
+  </div>
+  <div class="controls">
+    <button class="btn" id="t-play">Pause</button>
+    <button class="btn" id="t-reset">New parcel</button>
+    <button class="btn" id="t-all">Show neighbours</button>
+  </div>
+  <figure class="viz">
+    <canvas id="traj-canvas" width="960" height="460"></canvas>
+    <figcaption>
+      A Lagrangian trajectory: position evolves by <code>dx/dt = u(x,t)</code>;
+      concentration evolves by chemistry and sources along that path. Toggle
+      "Show neighbours" to see the sibling parcels whose stochastic mixing
+      represents unresolved turbulence.
+    </figcaption>
+  </figure>
+
   <figure class="viz">
     <img src="assets/img/lagrangian_vs_eulerian_montage.png" alt="Side-by-side schematic of Eulerian grid boxes versus Lagrangian moving air parcels" loading="lazy">
     <figcaption>
@@ -163,5 +227,6 @@
   and Stevenson et al. (1998)<sup class="cite"><a href="references.html#stevenson1998">[2]</a></sup>;
   details such as grid dimensions describe the current STOCHEM-CRI build.
 </footer>
+<script src="assets/js/traj.js"></script>
 </body>
 </html>
